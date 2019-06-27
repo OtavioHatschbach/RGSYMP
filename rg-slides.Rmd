@@ -1,0 +1,109 @@
+---
+title: "Right-censored<br> and left-truncated"
+author: "Thomas Lumley, University of Auckland"
+date: "2019-6-27"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+source("rg-code.R")
+```
+
+
+## Approximate quote
+
+(To L-J Wei)
+
+> *"L-J, I know what you do when you do research, but you've got no idea what I do when I do research"*
+
+
+## Auckland Stats Department (1994)
+
+<img src="IMG_20190620_131729.jpg" height="500px">
+
+## Pre-Auckland
+
+
+<img src="rg-survival.png" width="800px">
+
+##  Formerly-real data (pbc)
+
+```{r}
+data(pbc)
+pbc$timeyrs<-pbc$time/365.25
+pbc<-subset(pbc, !is.na(trt))
+plot(timeyrs~log(protime),xlab="log(prothrombin time)",ylab="Time (years)",data=pbc)
+```
+
+## Gentleman & Crowley
+
+```{r}
+plot(timeyrs~log(protime),pch=ifelse(status==0,1,19), col=c("grey","orange","darkred")[status+1],xlab="log(prothrombin time)",ylab="Time (years)",data=pbc)
+```
+
+## Idea
+
+The Kaplan--Meier estimator:
+$$\hat S(t) = \prod_{s\leq t} \left(1-\frac{\sum_i dN_i(s)}{\sum_i Y_i(s)}\right)$$
+
+Estimate at a particular $z$ with kernel weights
+$$\hat S(t;z) = \prod_{s\leq t} \left(1-\frac{\sum_i \color{red}{w(z_i,z)}dN_i(s)}{\sum_i \color{red}{w(z_i,z)}Y_i(s)}\right)$$
+Quantiles!
+
+
+## Gentleman & Crowley
+
+```{r}
+plot(timeyrs~log(protime),pch=ifelse(status==0,1,19), col=c("grey","orange","darkred")[status+1],xlab="log(prothrombin time)",ylab="Time (years)",data=pbc)
+
+qq<-with(pbc, kmquantiles(timeyrs, status>0, log(protime),p=c(0.95,0.9,0.75,0.5)))
+matlines(qq$x, t(qq$y),lty=1,col="black")
+```
+
+
+## K-M contour plot
+
+```{r}
+Sxt<-with(pbc, kmgrid(timeyrs, status>0, log(protime)))
+with(Sxt, filled.contour(x,y,z,xlab="log(protime)",ylab="Time(years)",main="Survival"))
+```
+
+
+## Fixing the data error
+
+```{r}
+pbc$protime[pbc$id==107]<-10.7
+Sxt<-with(pbc, kmgrid(timeyrs, status>0, log(protime)))
+with(Sxt, filled.contour(x,y,z,xlab="log(protime)",ylab="Time(years)",main="Survival"))
+```
+
+## Discrimination?
+
+At time $t$ make two observations: 
+
+- 0 with weight $\hat S(t;z)$ 
+- 1 with weight $1-\hat S(t;z)$ 
+
+ROC curve as usual. XLISP-Stat interactive graphics, including linked brushing.
+
+[Heagerty, Lumley, Pepe (2000) *Biometrics*; Lumley & Heagerty (2000) *JCGS*]
+
+
+**Or just a dot plot?**
+
+## Demo
+
+(God willing and the creek don't rise)
+
+```
+quartz(height=5, width=5)
+par(mar=c(4.1,2.1,0.1,0.1))
+with(pbc, triplot(timeyrs, status, log(protime)))
+
+with(pbc, triplot2(timeyrs, status, log(protime)))
+
+with(pbc, triplot2(timeyrs, status, log(bili)))
+```
+
+
